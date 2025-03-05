@@ -21,7 +21,7 @@ public class PlayerController : MonoBehaviour
 
     [HideInInspector]
     public bool canLook = true;
-
+    public Action inventory;
     private Rigidbody rigidbody;
 
     private void Awake()
@@ -66,6 +66,7 @@ public class PlayerController : MonoBehaviour
     public void OnSprintInput(InputAction.CallbackContext context)
     {
         moveSpeed = context.ReadValueAsButton() ? 10 : 5;
+
     }
 
     public void OnJumpInput(InputAction.CallbackContext context)
@@ -74,6 +75,20 @@ public class PlayerController : MonoBehaviour
         {
             rigidbody.AddForce(Vector2.up * jumpPower, ForceMode.Impulse);
         }
+    }
+    public void OnInventoryButton(InputAction.CallbackContext callbackContext)
+    {
+        if (callbackContext.phase == InputActionPhase.Started)
+        {
+            inventory?.Invoke();
+            ToggleCursor();
+        }
+    }
+    void ToggleCursor()
+    {
+        bool toggle = Cursor.lockState == CursorLockMode.Locked;
+        Cursor.lockState = toggle ? CursorLockMode.None : CursorLockMode.Locked;
+        canLook = !toggle;
     }
 
     private void Move()
