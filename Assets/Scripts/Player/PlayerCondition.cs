@@ -5,7 +5,7 @@ public interface IDamageable
 {
     void TakePhysicalDamage(int damageAmount);
 }
-public class PlayerCondition : MonoBehaviour ,IDamageable
+public class PlayerCondition : MonoBehaviour, IDamageable
 {
     public UICondition uiCondition;
 
@@ -15,6 +15,7 @@ public class PlayerCondition : MonoBehaviour ,IDamageable
 
     public float noHungerHealthDecay;
     public event Action onTakeDamage;
+
 
     private void Update()
     {
@@ -52,5 +53,15 @@ public class PlayerCondition : MonoBehaviour ,IDamageable
     {
         health.Subtract(damageAmount);
         onTakeDamage?.Invoke();
+    }
+
+    public bool UseStamina(float amount)
+    {
+        if (stamina.curValue - amount <= 0f)
+        {
+            return false;
+        }
+        stamina.Subtract(amount);
+        return true;
     }
 }
