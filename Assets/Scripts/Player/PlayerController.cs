@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -23,15 +24,23 @@ public class PlayerController : MonoBehaviour
     public bool canLook = true;
     public Action inventory;
     private Rigidbody rigidbody;
+    private Animator animator;
+    private bool isSprinting = false;
 
     private void Awake()
     {
         rigidbody = GetComponent<Rigidbody>();
+        animator = GetComponent<Animator>();
     }
 
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
+    }
+
+    private void Update()
+    {
+        HandleAnimations();
     }
 
     private void FixedUpdate()
@@ -62,20 +71,37 @@ public class PlayerController : MonoBehaviour
         {
             curMovementInput = Vector2.zero;
         }
+
+        UpdateMoveAnimation();
     }
+
     public void OnSprintInput(InputAction.CallbackContext context)
     {
-        moveSpeed = context.ReadValueAsButton() ? 10 : 5;
+        if (context.performed)
+        {
+            isSprinting = true;
+        }
+        else if (context.canceled)
+        {
+            isSprinting = false;
+        }
 
+        UpdateMoveAnimation();
     }
 
     public void OnJumpInput(InputAction.CallbackContext context)
     {
         if (context.phase == InputActionPhase.Started && IsGrounded())
         {
-            rigidbody.AddForce(Vector2.up * jumpPower, ForceMode.Impulse);
+            rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+            animator.SetBool("Jump",true);
+        }
+        else
+        {
+            animator.SetBool("Jump",false);
         }
     }
+
     public void OnInventoryButton(InputAction.CallbackContext callbackContext)
     {
         if (callbackContext.phase == InputActionPhase.Started)
@@ -84,6 +110,7 @@ public class PlayerController : MonoBehaviour
             ToggleCursor();
         }
     }
+
     void ToggleCursor()
     {
         bool toggle = Cursor.lockState == CursorLockMode.Locked;
@@ -93,8 +120,9 @@ public class PlayerController : MonoBehaviour
 
     private void Move()
     {
+        float currentSpeed = isSprinting ? moveSpeed * 2f : moveSpeed;
         Vector3 dir = transform.forward * curMovementInput.y + transform.right * curMovementInput.x;
-        dir *= moveSpeed;
+        dir *= currentSpeed;
         dir.y = rigidbody.velocity.y;
 
         rigidbody.velocity = dir;
@@ -111,28 +139,42 @@ public class PlayerController : MonoBehaviour
 
     bool IsGrounded()
     {
-        Ray[] rays = new Ray[4]
-        {
-            new Ray(transform.position + (transform.forward * 0.2f) + (transform.up * 0.01f), Vector3.down),
-            new Ray(transform.position + (-transform.forward * 0.2f) + (transform.up * 0.01f), Vector3.down),
-            new Ray(transform.position + (transform.right * 0.2f) + (transform.up * 0.01f), Vector3.down),
-            new Ray(transform.position + (-transform.right * 0.2f) +(transform.up * 0.01f), Vector3.down)
-        };
+        Vector3 origin = transform.position + Vector3.up * 0.01f;
+        float rayDistance = 0.1f;
 
-        for (int i = 0; i < rays.Length; i++)
+        RaycastHit hit;
+        if (Physics.Raycast(origin, Vector3.down, out hit, rayDistance, groundLayerMask))
         {
-            if (Physics.Raycast(rays[i], 0.1f, groundLayerMask))
-            {
-                return true;
-            }
+            return true;
         }
-
         return false;
     }
 
-    public void ToggleCursor(bool toggle)
+    private void HandleAnimations()
     {
-        Cursor.lockState = toggle ? CursorLockMode.None : CursorLockMode.Locked;
-        canLook = !toggle;
+        bool isGrounded = IsGrounded();
+        bool isFalling = !isGrounded && rigidbody.velocity.y < 0;
+
+        if (isFalling)
+        {
+            animator.SetBool("FreeFall", true);
+        }
+        else if (isGrounded && animator.GetBool("FreeFall"))
+        {
+            animator.SetBool("FreeFall", false);
+            StartCoroutine(PlayLandAnimation());
+        }
+    }
+
+    private IEnumerator PlayLandAnimation()
+    {
+        animator.SetTrigger("Grounded");
+        yield return new WaitForSeconds(0.1f); // 착지 모션 유지 시간 조정 가능
+    }
+
+    private void UpdateMoveAnimation()
+    {
+        float moveMagnitude = curMovementInput.magnitude * (isSprinting ? 6f : 2f);
+        animator.SetFloat("Speed", moveMagnitude);
     }
 }
