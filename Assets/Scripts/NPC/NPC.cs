@@ -8,8 +8,8 @@ public enum AIState
 {
     Idle,       // 대기 상태
     Wandering,  // 배회 상태
-    Attacking,   // 공격 상태
-    Hitting     // 피격 상태
+    Attacking,  // 공격 상태
+    Fleeing // 도망
 }
 
 public class NPC : MonoBehaviour, IDamageable
@@ -79,8 +79,8 @@ public class NPC : MonoBehaviour, IDamageable
             case AIState.Attacking:
                 AttackingUpdate();
                 break;
-            case AIState.Hitting:
-                HittingUpdate();
+            case AIState.Fleeing:
+                FleeingUpdate();
                 break;
         }
     }
@@ -104,9 +104,9 @@ public class NPC : MonoBehaviour, IDamageable
                 agent.speed = runSpeed;
                 agent.isStopped = false;
                 break;
-            case AIState.Hitting:
-                agent.speed = runSpeed;
-                agent.isStopped = false;
+            case AIState.Fleeing:
+                agent.speed = 0;
+                agent.isStopped = true;
                 break;
         }
 
@@ -155,10 +155,44 @@ public class NPC : MonoBehaviour, IDamageable
 
         return hit.position;
     }
-    void HittingUpdate()
+
+    // 피격 상태 업데이트
+    void FleeingUpdate()
     {
-        
+        if (agent.remainingDistance < 0.1f) //거리가 가까워지면
+        {
+            agent.SetDestination(GetFleeLocation()); //받아온 값으로 도망친다.
+        }
+        else
+        {
+            SetState(AIState.Wandering);
+        }
     }
+    Vector3 GetFleeLocation()
+    {
+        NavMeshHit hit;
+
+        NavMesh.SamplePosition(transform.position + (Random.onUnitSphere * detectDistance), out hit, maxWanderDistance, NavMesh.AllAreas);
+
+        int i = 0;
+        while (GetDestinationAngle(hit.position) > 90 || playerDistance < detectDistance)
+        {
+
+            NavMesh.SamplePosition(transform.position + (Random.onUnitSphere * detectDistance), out hit, maxWanderDistance, NavMesh.AllAreas);
+            i++;
+            if (i == 30)
+                break;
+        }
+
+        return hit.position;
+    }
+
+    float GetDestinationAngle(Vector3 targetPos)
+    {
+        return Vector3.Angle(transform.position - CharacterManager.Instance.Player.transform.position, transform.position + targetPos);
+    }
+
+
     // 공격 상태 업데이트
     void AttackingUpdate()
     {
@@ -205,29 +239,6 @@ public class NPC : MonoBehaviour, IDamageable
         Vector3 directionToPlayer = CharacterManager.Instance.Player.transform.position - transform.position;
         float angle = Vector3.Angle(transform.forward, directionToPlayer);
         return angle < fieldOfView * 0.5f;
-    }
-    Vector3 GetHitLocation()
-    {
-        NavMeshHit hit;
-
-        NavMesh.SamplePosition(transform.position + (Random.onUnitSphere * detectDistance), out hit, maxWanderDistance, NavMesh.AllAreas);
-
-        int i = 0;
-        while (GetDestinationAngle(hit.position) > 90 || playerDistance < detectDistance)
-        {
-
-            NavMesh.SamplePosition(transform.position + (Random.onUnitSphere * detectDistance), out hit, maxWanderDistance, NavMesh.AllAreas);
-            i++;
-            if (i == 30)
-                break;
-        }
-
-        return hit.position;
-    }
-
-    float GetDestinationAngle(Vector3 targetPos)
-    {
-        return Vector3.Angle(transform.position - CharacterManager.Instance.Player.transform.position, transform.position + targetPos);
     }
 
     // 물리적 피해 처리
