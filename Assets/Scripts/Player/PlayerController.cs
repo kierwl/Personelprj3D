@@ -123,9 +123,12 @@ public class PlayerController : MonoBehaviour
         float currentSpeed = isSprinting ? moveSpeed * 2f : moveSpeed;
         Vector3 dir = transform.forward * curMovementInput.y + transform.right * curMovementInput.x;
         dir *= currentSpeed;
-        dir.y = rigidbody.velocity.y;
 
-        rigidbody.velocity = dir;
+        // y값을 제외한 이동만 적용 (y는 중력에 의해 영향을 받도록 유지)
+        Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
+
+        // MovePosition을 사용하여 물체를 이동
+        rigidbody.MovePosition(targetPosition);
     }
 
     void CameraLook()
