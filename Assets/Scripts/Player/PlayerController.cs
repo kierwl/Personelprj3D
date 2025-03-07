@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
@@ -80,13 +81,16 @@ public class PlayerController : MonoBehaviour
 
     public void OnSprintInput(InputAction.CallbackContext context)
     {
-        if (context.performed)
+
+        if (context.started)
         {
             isSprinting = true;
+            
         }
         else if (context.canceled)
         {
             isSprinting = false;
+
         }
 
         UpdateMoveAnimation();
@@ -97,6 +101,7 @@ public class PlayerController : MonoBehaviour
         if (context.phase == InputActionPhase.Started && IsGrounded())
         {
             rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+            CharacterManager.Instance.Player.condition.UseStamina(10);
             animator.SetBool("Jump",true);
         }
         else
