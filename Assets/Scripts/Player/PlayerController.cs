@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -10,14 +12,15 @@ public class PlayerController : MonoBehaviour
     private Vector2 curMovementInput;
     public float jumpPower;
     public LayerMask groundLayerMask;
-
+    private Coroutine boostCoroutine;
     [Header("Look")]
     public Transform cameraContainer;
     public float minXLook;
     public float maxXLook;
     private float camCurXRot;
     public float lookSensitivity;
-
+    [Header("Other")]
+    public BuffUIManager buffUIManager; // 버프 UI 매니저 연결
     private Vector2 mouseDelta;
 
     [HideInInspector]
@@ -180,4 +183,30 @@ public class PlayerController : MonoBehaviour
         float moveMagnitude = curMovementInput.magnitude * (isSprinting ? 6f : 2f);
         animator.SetFloat("Speed", moveMagnitude);
     }
+
+    public void ApplyBoost(System.Action<float> applyAction, float baseValue, float amount, float duration,Sprite buffIcon)
+    {
+        if (boostCoroutine != null)
+            StopCoroutine(boostCoroutine); // 기존 코루틴 중지
+
+        boostCoroutine = StartCoroutine(BoostCoroutine(applyAction, baseValue, amount, duration,buffIcon));
+    }
+
+    private IEnumerator BoostCoroutine(System.Action<float> applyAction, float baseValue, float amount, float duration, Sprite buffIcon)
+    {
+        applyAction(baseValue + amount); // 능력치 증가 적용
+        buffUIManager.ShowBuff(buffIcon, duration); // 버프 UI 표시
+        yield return new WaitForSeconds(duration);
+        applyAction(baseValue); // 원래 값으로 복구
+    }
+
+
+
+
+
+
+
+
+
+
 }

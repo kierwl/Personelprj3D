@@ -32,6 +32,7 @@ public class UIInventory : MonoBehaviour
     // 플레이어 컨트롤러와 상태
     private PlayerController controller;
     private PlayerCondition condition;
+    public BuffUIManager buffUIManager; // 버프 UI 매니저 연결
 
     void Start()
     {
@@ -217,6 +218,12 @@ public class UIInventory : MonoBehaviour
                         condition.Heal(selectedItem.consumables[i].value); break;
                     case ConsumableType.Hunger:
                         condition.Eat(selectedItem.consumables[i].value); break;
+                    case ConsumableType.Speed:
+                        controller.ApplyBoost(value => controller.moveSpeed = value, controller.moveSpeed, selectedItem.consumables[i].value, 5.0f, selectedItem.icon);
+                        break;
+                    case ConsumableType.Jump:
+                        controller.ApplyBoost(value => controller.jumpPower = value, controller.jumpPower, selectedItem.consumables[i].value, 5.0f, selectedItem.icon);
+                        break;
                 }
             }
             RemoveSelctedItem();
@@ -239,10 +246,12 @@ public class UIInventory : MonoBehaviour
         {
             if (slots[selectedItemIndex].equipped)
             {
-                //UnEquip(selectedItemIndex);
+                UnEquip(selectedItemIndex);
             }
-
+            
             selectedItem = null;
+            slots[selectedItemIndex].item = null;
+            selectedItemIndex = -1;
             ClearSelectedItemWindow();
         }
 
@@ -282,4 +291,5 @@ public class UIInventory : MonoBehaviour
     {
         return false;
     }
+
 }
