@@ -3,7 +3,7 @@ using UnityEngine;
 
 public interface IDamageable
 {
-    void TakePhysicalDamage(int damageAmount);
+    void TakePhysicalDamage(float damageAmount);
 }
 public class PlayerCondition : MonoBehaviour, IDamageable
 {
@@ -16,6 +16,7 @@ public class PlayerCondition : MonoBehaviour, IDamageable
     public float noHungerHealthDecay;
     public event Action onTakeDamage;
 
+   
 
     private void Update()
     {
@@ -31,6 +32,12 @@ public class PlayerCondition : MonoBehaviour, IDamageable
         if (health.curValue < 0f)
         {
             Die();
+        }
+
+        if (stamina.curValue <= 1f)
+        {
+            TakePhysicalDamage(10*Time.deltaTime);
+            Debug.Log("스태미나가 부족하여 체력 감소");
         }
     }
 
@@ -49,7 +56,7 @@ public class PlayerCondition : MonoBehaviour, IDamageable
         Debug.Log("플레이어가 죽었다.");
     }
 
-    public void TakePhysicalDamage(int damageAmount)
+    public void TakePhysicalDamage(float damageAmount)
     {
         health.Subtract(damageAmount);
         onTakeDamage?.Invoke();

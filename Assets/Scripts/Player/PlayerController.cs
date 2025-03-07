@@ -29,7 +29,7 @@ public class PlayerController : MonoBehaviour
     public Action inventory;
     private Rigidbody rigidbody;
     private Animator animator;
-    private bool isSprinting = false;
+    public bool isSprinting = false;
 
     private void Awake()
     {
@@ -50,6 +50,18 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         Move();
+
+        // 스프린트 중일 때 스태미나를 소모
+        if (isSprinting == true)
+        {
+            // 스프린트 상태일 때만 스태미나 소모
+            CharacterManager.Instance.Player.condition.UseStamina(15f * Time.deltaTime);
+            Debug.Log("스프린트 중");
+        }
+        else
+        {
+
+        }
     }
 
     private void LateUpdate()
@@ -82,10 +94,10 @@ public class PlayerController : MonoBehaviour
     public void OnSprintInput(InputAction.CallbackContext context)
     {
 
-        if (context.started)
+        if (context.performed)
         {
             isSprinting = true;
-            
+
         }
         else if (context.canceled)
         {
@@ -185,7 +197,7 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateMoveAnimation()
     {
-        float moveMagnitude = curMovementInput.magnitude * (isSprinting ? 6f : 2f);
+        float moveMagnitude = curMovementInput.magnitude * (isSprinting ? 8f : 2f);
         animator.SetFloat("Speed", moveMagnitude);
     }
 

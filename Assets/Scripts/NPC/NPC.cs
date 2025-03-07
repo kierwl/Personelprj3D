@@ -242,9 +242,9 @@ public class NPC : MonoBehaviour, IDamageable
     }
 
     // 拱府利 乔秦 贸府
-    public void TakePhysicalDamage(int damage)
+    public void TakePhysicalDamage(float damage)
     {
-        health -= damage;
+        health -= (int)damage;
         if (health <= 0)
         {
             Die();

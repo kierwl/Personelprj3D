@@ -1908,7 +1908,7 @@ MonoBehaviour:
   curValue: 0
   maxValue: 500
   startValue: 400
-  passiveValue: 20
+  passiveValue: 0.1
   uiBar: {fileID: 327474875}
 --- !u!1 &586000269
 GameObject:
@@ -3286,8 +3286,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   curValue: 0
   maxValue: 100
-  startValue: 100
-  passiveValue: 10
+  startValue: 90
+  passiveValue: 5
   uiBar: {fileID: 1172953425}
 --- !u!1 &963194225
 GameObject:
@@ -5282,6 +5282,7 @@ MonoBehaviour:
   lookSensitivity: 0.2
   buffUIManager: {fileID: 1956159352}
   canLook: 1
+  isSprinting: 0
 --- !u!114 &1472987314
 MonoBehaviour:
   m_ObjectHideFlags: 0
