@@ -63,6 +63,7 @@ public class TurretAim : MonoBehaviour
     private bool isBaseAtRest = false;
     private bool isBarrelAtRest = false;
 
+    private Shoot shoot;
     /// <summary>
     /// 포탑이 수평 축에서 자유롭게 회전할 수 없을 때 true입니다.
     /// </summary>
@@ -88,6 +89,11 @@ public class TurretAim : MonoBehaviour
         hasBarrels = barrels != null;
         if (turretBase == null)
             Debug.LogError(name + ": TurretAim에는 할당된 TurretBase가 필요합니다!");
+    }
+
+    private void Start()
+    {
+        shoot = GetComponent<Shoot>();
     }
 
     private void Update()
@@ -214,11 +220,12 @@ public class TurretAim : MonoBehaviour
         }
 
         target = closestTarget;
-
+        
         if (target != null)
         {
             Debug.Log($"🎯 타겟 설정 완료: {target.name}");
-            SetTarget(target.position);
+            shoot.SetTarget(target.position);
+            
         }
         else
         {
@@ -226,11 +233,7 @@ public class TurretAim : MonoBehaviour
         }
     }
 
-    public void SetTarget(Vector3 targetPosition)
-    {
-        AimPosition = targetPosition;
-        IsIdle = false; // 타겟이 설정되면 대기 상태를 해제
-    }
+    
 
     private bool IsObstructed(Vector3 targetPosition)
     {
