@@ -41,9 +41,8 @@ public class BulletPoolManager : MonoBehaviour
         }
         else
         {
-            // 만약 풀에 여유가 없다면, 새로 생성해서 반환
-            GameObject bullet = Instantiate(bulletPrefab, position, rotation);
-            return bullet;
+            Debug.LogWarning("풀에 여유가 없습니다. 총알을 생성하지 않습니다.");
+            return null;
         }
     }
 

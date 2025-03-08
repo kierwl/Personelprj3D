@@ -64,6 +64,7 @@ public class TurretAim : MonoBehaviour
     private bool isBarrelAtRest = false;
 
     private Shoot shoot;
+
     /// <summary>
     /// 포탑이 수평 축에서 자유롭게 회전할 수 없을 때 true입니다.
     /// </summary>
@@ -104,6 +105,7 @@ public class TurretAim : MonoBehaviour
             if (!IsTurretAtRest)
                 RotateTurretToIdle();
             isAimed = false;
+            shoot.isShooting = false;
         }
         else
         {
@@ -123,6 +125,11 @@ public class TurretAim : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 주어진 목표 위치까지의 각도를 계산합니다.
+    /// </summary>
+    /// <param name="targetPosition">목표 위치</param>
+    /// <returns>목표까지의 각도</returns>
     private float GetTurretAngleToTarget(Vector3 targetPosition)
     {
         float angle = 999f;
@@ -145,6 +152,9 @@ public class TurretAim : MonoBehaviour
         return angle;
     }
 
+    /// <summary>
+    /// 포탑을 대기 상태로 회전시킵니다.
+    /// </summary>
     private void RotateTurretToIdle()
     {
         // 베이스를 기본 위치로 회전시킵니다.
@@ -181,6 +191,10 @@ public class TurretAim : MonoBehaviour
             isBarrelAtRest = true;
     }
 
+    /// <summary>
+    /// 포탑의 총신을 목표 위치로 회전시킵니다.
+    /// </summary>
+    /// <param name="targetPosition">목표 위치</param>
     private void RotateBarrelsToFaceTarget(Vector3 targetPosition)
     {
         Vector3 localTargetPos = turretBase.InverseTransformDirection(targetPosition - barrels.position);
@@ -200,6 +214,10 @@ public class TurretAim : MonoBehaviour
             Debug.DrawRay(barrels.position, barrels.forward * localTargetPos.magnitude, Color.red);
 #endif
     }
+
+    /// <summary>
+    /// 목표를 감지합니다.
+    /// </summary>
     private void DetectTarget()
     {
         Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRange, targetLayer);
@@ -211,35 +229,46 @@ public class TurretAim : MonoBehaviour
         {
             Transform potentialTarget = col.transform;
             float distanceToTarget = Vector3.Distance(transform.position, potentialTarget.position);
+            Vector3 directionToTarget = (potentialTarget.position - transform.position).normalized;
 
-            if (distanceToTarget < closestDistance && !IsObstructed(potentialTarget.position))
+            // 전방의 원뿔 형태로 감지
+            if (Vector3.Dot(transform.forward, directionToTarget) > Mathf.Cos(Mathf.Deg2Rad * 45f)) // 45도 각도 내에 있는지 확인
             {
-                closestTarget = potentialTarget;
-                closestDistance = distanceToTarget;
+                if (distanceToTarget < closestDistance && !IsObstructed(potentialTarget.position))
+                {
+                    closestTarget = potentialTarget;
+                    closestDistance = distanceToTarget;
+                }
             }
         }
 
         target = closestTarget;
-        
+
         if (target != null)
         {
-            Debug.Log($"🎯 타겟 설정 완료: {target.name}");
+            Debug.Log($"타겟 설정 완료: {target.name}");
             shoot.SetTarget(target.position);
-            
+            shoot.isShooting = true;
         }
         else
         {
-            Debug.Log("❌ 타겟 찾기 실패!");
+            Debug.Log("타겟 찾기 실패!");
+            shoot.isShooting = false;
         }
     }
 
-    
-
+    /// <summary>
+    /// 목표 위치가 장애물에 의해 가려져 있는지 확인합니다.
+    /// </summary>
+    /// <param name="targetPosition">목표 위치</param>
+    /// <returns>장애물이 있으면 true, 없으면 false</returns>
     private bool IsObstructed(Vector3 targetPosition)
     {
-        Vector3 direction = (targetPosition - barrels.position).normalized;
+        // 포탑의 총신이 목표를 향하는 방향
+        Vector3 direction = barrels.forward;
         float distance = Vector3.Distance(barrels.position, targetPosition);
 
+        // 레이캐스트를 통해 장애물 감지
         if (Physics.Raycast(barrels.position, direction, distance, obstacleLayer))
         {
             return true; // 장애물이 있음
@@ -247,6 +276,11 @@ public class TurretAim : MonoBehaviour
 
         return false; // 장애물이 없음
     }
+
+    /// <summary>
+    /// 포탑의 베이스를 목표 위치로 회전시킵니다.
+    /// </summary>
+    /// <param name="targetPosition">목표 위치</param>
     private void RotateBaseToFaceTarget(Vector3 targetPosition)
     {
         Vector3 turretUp = transform.up;

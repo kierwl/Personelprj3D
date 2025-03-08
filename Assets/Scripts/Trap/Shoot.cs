@@ -7,7 +7,7 @@ public class Shoot : MonoBehaviour
     public Transform firePoint;  // 총알 발사 위치
     public float bulletSpeed = 10f;  // 총알 속도
     public float fireRate = 1f;  // 발사 속도 (초당 1발)
-
+    public bool isShooting = false;  // 발사 여부   
     private float nextFireTime = 0f;  // 다음 발사 가능 시간
     private Transform target;  // 목표 타겟
 
@@ -15,14 +15,18 @@ public class Shoot : MonoBehaviour
     {
         if (target != null && Time.time >= nextFireTime)
         {
-            Fire();
-            Debug.Log("총알 발사!");
-            nextFireTime = Time.time + 1f / fireRate; // 다음 발사 시간 설정
+            if (isShooting)
+            {
+                Fire();
+                Debug.Log("총알 발사!");
+                nextFireTime = Time.time + 1f / fireRate; // 다음 발사 시간 설정
+            }
         }
         else
         {
             // 타겟이 없거나 발사 대기 시간이 아닌 경우
             turretAim.IsIdle = true;
+            isShooting = false;
         }
     }
 
@@ -55,9 +59,13 @@ public class Shoot : MonoBehaviour
     private IEnumerator CheckBulletCollision(GameObject bullet)
     {
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        float bulletLifeTime = 0f;
+        float maxLifeTime = 3f; // 최대 생존 시간
 
         while (bullet.activeSelf)
         {
+            bulletLifeTime += Time.deltaTime;
+
             RaycastHit hit;
             if (Physics.Raycast(bullet.transform.position, rb.velocity.normalized, out hit, bulletSpeed * Time.deltaTime))
             {
@@ -71,6 +79,15 @@ public class Shoot : MonoBehaviour
                     break;
                 }
             }
+
+            // 총알이 3초 이상 살아있다면 충돌 판정
+            if (bulletLifeTime >= maxLifeTime)
+            {
+                bulletPoolManager.ReturnBulletToPool(bullet);
+                Debug.Log(" 총알이 3초 이상 살아있어 리턴!");
+                break;
+            }
+
             yield return null;
         }
     }
@@ -82,5 +99,10 @@ public class Shoot : MonoBehaviour
     {
         turretAim.AimPosition = targetPosition;
         turretAim.IsIdle = false; // 타겟이 설정되면 대기 상태를 해제
+
+        // target 변수를 설정
+        GameObject targetObject = new GameObject("Target");
+        targetObject.transform.position = targetPosition;
+        target = targetObject.transform;
     }
 }

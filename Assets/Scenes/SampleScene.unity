@@ -7549,8 +7549,8 @@ MonoBehaviour:
   MaxDepression: 5
   TraverseSpeed: 60
   hasLimitedTraverse: 1
-  LeftLimit: 120
-  RightLimit: 120
+  LeftLimit: 60
+  RightLimit: 60
   IsIdle: 0
   AimPosition: {x: 11, y: 3, z: 11}
   aimedThreshold: 5
@@ -7561,7 +7561,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1937
   trackTarget: 1
-  detectionRange: 10
+  detectionRange: 8
   DrawDebugRay: 1
   DrawDebugArcs: 1
 --- !u!114 &114776554133342212
@@ -7581,6 +7581,7 @@ MonoBehaviour:
   firePoint: {fileID: 4901015283804875}
   bulletSpeed: 20
   fireRate: 2
+  isShooting: 0
 --- !u!4 &190011549644863943
 Transform:
   m_ObjectHideFlags: 0
