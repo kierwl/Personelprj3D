@@ -20,14 +20,16 @@ public class DivingPlatform : MonoBehaviour
 
             if (playerRb != null)
             {
-                // 런치패드에 닿으면 AddForce로 날리기
-                LaunchPlayer(playerRb);
+                // 3초 대기 후 플레이어 발사
+                StartCoroutine(LaunchPlayerAfterDelay(playerRb, 3f));
             }
         }
     }
 
-    private void LaunchPlayer(Rigidbody playerRb)
+    private IEnumerator LaunchPlayerAfterDelay(Rigidbody playerRb, float delay)
     {
+        yield return new WaitForSeconds(delay); // 3초 대기
+
         Vector3 direction = (targetPosition - playerRb.transform.position).normalized; // 목표 방향 계산
         direction.y = 1f; // Y축 방향으로 추가적인 힘을 줘서 포물선을 만들기 위해 수직 방향에 영향을 줌
 

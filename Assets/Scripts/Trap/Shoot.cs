@@ -5,10 +5,10 @@ public class Shoot : MonoBehaviour
     public TurretAim turretAim;
     public BulletPoolManager bulletPoolManager;  // 총알 풀 매니저
     public Transform firePoint;  // 총알 발사 위치
-    public float bulletSpeed = 10f;  // 총알 속도
+    public float bulletSpeed = 20f;  // 총알 속도
     public float fireRate = 1f;  // 발사 속도 (초당 1발)
     public bool isShooting = false;  // 발사 여부   
-    private float nextFireTime = 0f;  // 다음 발사 가능 시간
+    private float nextFireTime = 5f;  // 다음 발사 가능 시간
     private Transform target;  // 목표 타겟
 
     private void Update()
@@ -75,6 +75,15 @@ public class Shoot : MonoBehaviour
                     // 플레이어와 충돌 시 총알 비활성화 및 위치 초기화
                     bulletPoolManager.ReturnBulletToPool(bullet);
                     CharacterManager.Instance.Player.controller.GetComponent<IDamageable>().TakePhysicalDamage(5);
+
+                    // 넉백 효과 추가
+                    Rigidbody playerRb = hit.collider.GetComponent<Rigidbody>();
+                    if (playerRb != null)
+                    {
+                        Vector3 knockbackDirection = (hit.collider.transform.position - bullet.transform.position).normalized;
+                        playerRb.AddForce(knockbackDirection * 10f, ForceMode.VelocityChange); // 넉백 힘 적용
+                    }
+
                     Debug.Log(" 플레이어와 충돌, 총알 리턴!");
                     break;
                 }
@@ -99,6 +108,12 @@ public class Shoot : MonoBehaviour
     {
         turretAim.AimPosition = targetPosition;
         turretAim.IsIdle = false; // 타겟이 설정되면 대기 상태를 해제
+
+        // 기존 target이 존재하면 삭제
+        if (target != null)
+        {
+            Destroy(target.gameObject);
+        }
 
         // target 변수를 설정
         GameObject targetObject = new GameObject("Target");
