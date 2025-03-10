@@ -13,7 +13,8 @@ public enum ConsumableType
     Health,
     Stamina,
     Speed,
-    Jump
+    Jump,
+    DoubleJump
 }
 
 [System.Serializable]

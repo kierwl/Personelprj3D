@@ -12,7 +12,7 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed;
     private Vector2 curMovementInput;
     public float jumpPower;
-    private bool canDoubleJump = false;  // 더블 점프 가능 여부
+    public bool canDoubleJump = false;  // 더블 점프 가능 여부를 기본적으로 false로 설정
     public LayerMask groundLayerMask;
     private Coroutine boostCoroutine;
     [Header("Look")]
@@ -59,10 +59,6 @@ public class PlayerController : MonoBehaviour
             CharacterManager.Instance.Player.condition.UseStamina(15f * Time.deltaTime);
             Debug.Log("스프린트 중");
         }
-        else
-        {
-
-        }
     }
 
     private void LateUpdate()
@@ -71,6 +67,16 @@ public class PlayerController : MonoBehaviour
         {
             CameraLook();
         }
+    }
+    private Coroutine doubleJumpCoroutine; // 중복 방지용
+
+    public void EnableDoubleJump(float duration, Sprite buffIcon)
+    {
+        Debug.Log("EnableDoubleJump called");
+        if (doubleJumpCoroutine != null)
+            StopCoroutine(doubleJumpCoroutine);  // 기존 코루틴 중지
+
+        doubleJumpCoroutine = StartCoroutine(DoubleJumpCoroutine(duration, buffIcon));
     }
 
     public void OnLookInput(InputAction.CallbackContext context)
@@ -94,16 +100,13 @@ public class PlayerController : MonoBehaviour
 
     public void OnSprintInput(InputAction.CallbackContext context)
     {
-
         if (context.performed)
         {
             isSprinting = true;
-
         }
         else if (context.canceled)
         {
             isSprinting = false;
-
         }
 
         UpdateMoveAnimation();
@@ -111,15 +114,26 @@ public class PlayerController : MonoBehaviour
 
     public void OnJumpInput(InputAction.CallbackContext context)
     {
-        if (context.phase == InputActionPhase.Started && IsGrounded())
+        if (context.phase == InputActionPhase.Started)
         {
-            rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
-            CharacterManager.Instance.Player.condition.UseStamina(10);
-            animator.SetBool("Jump",true);
+            if (IsGrounded()) // 땅에 있을 때 점프
+            {
+                rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+                CharacterManager.Instance.Player.condition.UseStamina(10);
+                animator.SetBool("Jump", true);
+            }
+            else if (canDoubleJump) // 공중에서 한 번 더 점프 가능
+            {
+                rigidbody.velocity = new Vector3(rigidbody.velocity.x, 0f, rigidbody.velocity.z); // 현재 속도 초기화
+                rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+                canDoubleJump = false; // 더블 점프 후 비활성화
+                CharacterManager.Instance.Player.condition.UseStamina(10);
+                animator.SetBool("Jump", true);
+            }
         }
-        else
+        else if (context.phase == InputActionPhase.Canceled)
         {
-            animator.SetBool("Jump",false);
+            animator.SetBool("Jump", false);
         }
     }
 
@@ -164,7 +178,7 @@ public class PlayerController : MonoBehaviour
     bool IsGrounded()
     {
         Vector3 origin = transform.position + Vector3.up * 0.01f;
-        float rayDistance = 0.1f;
+        float rayDistance = 0.15f;
 
         RaycastHit hit;
         if (Physics.Raycast(origin, Vector3.down, out hit, rayDistance, groundLayerMask))
@@ -183,9 +197,10 @@ public class PlayerController : MonoBehaviour
         {
             animator.SetBool("FreeFall", true);
         }
-        else if (isGrounded && animator.GetBool("FreeFall"))
+        else if (isGrounded)
         {
             animator.SetBool("FreeFall", false);
+            animator.SetBool("Jump", false); // 착지 시 Jump 애니메이션 불값을 false로 설정
             StartCoroutine(PlayLandAnimation());
         }
     }
@@ -202,12 +217,23 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat("Speed", moveMagnitude);
     }
 
-    public void ApplyBoost(System.Action<float> applyAction, float baseValue, float amount, float duration,Sprite buffIcon)
+    public void ApplyBoost(System.Action<float> applyAction, float baseValue, float amount, float duration, Sprite buffIcon)
     {
         if (boostCoroutine != null)
             StopCoroutine(boostCoroutine); // 기존 코루틴 중지
 
-        boostCoroutine = StartCoroutine(BoostCoroutine(applyAction, baseValue, amount, duration,buffIcon));
+        boostCoroutine = StartCoroutine(BoostCoroutine(applyAction, baseValue, amount, duration, buffIcon));
+    }
+
+    private IEnumerator DoubleJumpCoroutine(float duration, Sprite buffIcon)
+    {
+        Debug.Log("DoubleJumpCoroutine started");
+        canDoubleJump = true;  // 더블 점프 활성화
+        buffUIManager.ShowBuff(buffIcon, duration); // UI 표시
+        yield return new WaitForSeconds(duration);
+
+        canDoubleJump = false;  // 시간이 지나면 비활성화
+        Debug.Log("DoubleJumpCoroutine ended");
     }
 
     private IEnumerator BoostCoroutine(System.Action<float> applyAction, float baseValue, float amount, float duration, Sprite buffIcon)
@@ -217,14 +243,4 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(duration);
         applyAction(baseValue); // 원래 값으로 복구
     }
-
-
-
-
-
-
-
-
-
-
 }

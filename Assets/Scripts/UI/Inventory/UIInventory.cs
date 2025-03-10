@@ -224,6 +224,8 @@ public class UIInventory : MonoBehaviour
                     case ConsumableType.Jump:
                         controller.ApplyBoost(value => controller.jumpPower = value, controller.jumpPower, selectedItem.consumables[i].value, 10.0f, selectedItem.icon);
                         break;
+                    case ConsumableType.DoubleJump:
+                        controller.EnableDoubleJump(5.0f, selectedItem.icon); break;
                 }
             }
             RemoveSelctedItem();
