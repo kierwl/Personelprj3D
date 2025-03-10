@@ -6,9 +6,9 @@ public class Shoot : MonoBehaviour
     public BulletPoolManager bulletPoolManager;  // 총알 풀 매니저
     public Transform firePoint;  // 총알 발사 위치
     public float bulletSpeed = 20f;  // 총알 속도
-    public float fireRate = 1f;  // 발사 속도 (초당 1발)
+    public float fireRate = 5f;  // 발사 속도 (초당 1발)
     public bool isShooting = false;  // 발사 여부   
-    private float nextFireTime = 5f;  // 다음 발사 가능 시간
+    private float nextFireTime = 1f;  // 다음 발사 가능 시간
     private Transform target;  // 목표 타겟
 
     private void Update()

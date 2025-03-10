@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 public interface IDamageable
@@ -53,7 +54,9 @@ public class PlayerCondition : MonoBehaviour, IDamageable
 
     public void Die()
     {
+
         Debug.Log("플레이어가 죽었다.");
+        StartCoroutine(Respawn());
     }
 
     public void TakePhysicalDamage(float damageAmount)
@@ -70,5 +73,25 @@ public class PlayerCondition : MonoBehaviour, IDamageable
         }
         stamina.Subtract(amount);
         return true;
+    }
+
+    private IEnumerator Respawn()
+    {
+        yield return new WaitForSeconds(3f); // 3초 대기
+
+        // 플레이어 상태 초기화
+        health.curValue = health.maxValue;
+        hunger.curValue = hunger.startValue;
+        stamina.curValue = stamina.startValue;
+
+        // UI 업데이트
+        uiCondition.health.uiBar.fillAmount = health.GetPercentage();
+        uiCondition.hunger.uiBar.fillAmount = hunger.GetPercentage();
+        uiCondition.stamina.uiBar.fillAmount = stamina.GetPercentage();
+
+        // 플레이어 위치 초기화 (예: 시작 위치로 이동)
+        transform.position = Vector3.zero; // 원하는 위치로 변경
+
+        Debug.Log("플레이어가 재시작되었습니다.");
     }
 }

@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed;
     private Vector2 curMovementInput;
     public float jumpPower;
+    private bool canDoubleJump = false;  // 더블 점프 가능 여부
     public LayerMask groundLayerMask;
     private Coroutine boostCoroutine;
     [Header("Look")]

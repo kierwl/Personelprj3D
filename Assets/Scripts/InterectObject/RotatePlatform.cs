@@ -43,6 +43,7 @@ public class RotateObject : MonoBehaviour
         if (((1 << other.gameObject.layer) & playerLayer) != 0)
         {
             other.transform.SetParent(null);
+            other.transform.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
 }

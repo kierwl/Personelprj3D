@@ -222,7 +222,7 @@ public class UIInventory : MonoBehaviour
                         controller.ApplyBoost(value => controller.moveSpeed = value, controller.moveSpeed, selectedItem.consumables[i].value, 5.0f, selectedItem.icon);
                         break;
                     case ConsumableType.Jump:
-                        controller.ApplyBoost(value => controller.jumpPower = value, controller.jumpPower, selectedItem.consumables[i].value, 5.0f, selectedItem.icon);
+                        controller.ApplyBoost(value => controller.jumpPower = value, controller.jumpPower, selectedItem.consumables[i].value, 10.0f, selectedItem.icon);
                         break;
                 }
             }
