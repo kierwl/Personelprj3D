@@ -2,28 +2,30 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.EnhancedTouch;
-using UnityEngine.InputSystem.LowLevel;
-using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
+    // Singleton instance for easy access
+    public static PlayerController Instance;
+
     [Header("Movement")]
-    public float moveSpeed;
+    public float moveSpeed = 5f;
     private Vector2 curMovementInput;
-    public float jumpPower;
-    public bool canDoubleJump = false;  // 더블 점프 가능 여부를 기본적으로 false로 설정
+    public float jumpPower = 7f;
+    public bool canDoubleJump = false;
     public LayerMask groundLayerMask;
     private Coroutine boostCoroutine;
+    public float rotationSpeed = 15f;
+
     [Header("Look")]
-    public Transform cameraContainer;
-    public float minXLook;
-    public float maxXLook;
-    private float camCurXRot;
-    public float lookSensitivity;
+    public float lookSensitivity = 1f;
+    // Keep existing fields and add these new ones
+    [Header("Camera Control")]
+    public CameraFollow cameraFollow; // Reference to the CameraFollow script
+    private Vector2 lookDelta; // Store the look input
+
     [Header("Other")]
-    public BuffUIManager buffUIManager; // 버프 UI 매니저 연결
-    private Vector2 mouseDelta;
+    public BuffUIManager buffUIManager;
 
     [HideInInspector]
     public bool canLook = true;
@@ -31,10 +33,24 @@ public class PlayerController : MonoBehaviour
     private Rigidbody rigidbody;
     private Animator animator;
     public bool isSprinting = false;
-    public bool isLadder = false; // 사다리 상태를 나타내는 불값 추가
+    public bool isLadder = false;
+
+    // Reference to the camera - we'll use this for movement direction
+    private Camera mainCamera;
+    private Coroutine doubleJumpCoroutine;
+    private Vector3 lastStablePosition;
+    private float stuckTimer = 0f;
+    private const float STUCK_THRESHOLD = 0.2f;
+    private const float STUCK_CHECK_TIME = 0.5f;
 
     private void Awake()
     {
+        // Setup singleton instance
+        if (Instance == null)
+            Instance = this;
+        else if (Instance != this)
+            Destroy(gameObject);
+
         rigidbody = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
     }
@@ -42,47 +58,140 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
+        mainCamera = Camera.main;
+        lastStablePosition = transform.position;
     }
 
     private void Update()
     {
         HandleAnimations();
+        CheckForStuckPlayer();
     }
 
     private void FixedUpdate()
     {
         Move();
 
-        // 스프린트 중일 때 스태미나를 소모
-        if (isSprinting == true)
+        // Sprint stamina consumption
+        if (isSprinting)
         {
-            // 스프린트 상태일 때만 스태미나 소모
             CharacterManager.Instance.Player.condition.UseStamina(15f * Time.deltaTime);
-            Debug.Log("스프린트 중");
         }
     }
 
-    private void LateUpdate()
+    private void CheckForStuckPlayer()
     {
-        if (canLook)
+        // Check if the player is moving
+        if (curMovementInput.magnitude > 0.1f)
         {
-            CameraLook();
+            // Calculate the actual movement since last frame
+            float movementDelta = Vector3.Distance(transform.position, lastStablePosition);
+
+            // If player is trying to move but can't
+            if (movementDelta < STUCK_THRESHOLD)
+            {
+                stuckTimer += Time.deltaTime;
+
+                // If stuck for too long, try to resolve
+                if (stuckTimer > STUCK_CHECK_TIME)
+                {
+                    TryToUnstuckPlayer();
+                    stuckTimer = 0f;
+                }
+            }
+            else
+            {
+                // Player is moving normally
+                stuckTimer = 0f;
+                lastStablePosition = transform.position;
+            }
+        }
+        else
+        {
+            // Player is not trying to move
+            stuckTimer = 0f;
+            lastStablePosition = transform.position;
         }
     }
-    private Coroutine doubleJumpCoroutine; // 중복 방지용
+
+    private void TryToUnstuckPlayer()
+    {
+        // Small upward force to help with minor terrain obstacles
+        rigidbody.AddForce(Vector3.up * 0.5f, ForceMode.Impulse);
+
+        // Try to move slightly back from the direction player is facing
+        Vector3 unstuckDirection = -transform.forward * 0.3f;
+        RaycastHit hit;
+
+        // Check if there's space behind the player
+        if (!Physics.Raycast(transform.position, -transform.forward, out hit, 0.5f))
+        {
+            rigidbody.MovePosition(transform.position + unstuckDirection);
+        }
+    }
 
     public void EnableDoubleJump(float duration, Sprite buffIcon)
     {
-        Debug.Log("EnableDoubleJump called");
         if (doubleJumpCoroutine != null)
-            StopCoroutine(doubleJumpCoroutine);  // 기존 코루틴 중지
+            StopCoroutine(doubleJumpCoroutine);
 
         doubleJumpCoroutine = StartCoroutine(DoubleJumpCoroutine(duration, buffIcon));
     }
 
+    // This method gets called by the Input System when mouse/look input changes
     public void OnLookInput(InputAction.CallbackContext context)
     {
-        mouseDelta = context.ReadValue<Vector2>();
+        // Store the look input if we're allowed to look around
+        if (canLook && Cursor.lockState == CursorLockMode.Locked)
+        {
+            lookDelta = context.ReadValue<Vector2>();
+
+            // If we have a reference to the camera follow script
+            if (cameraFollow != null)
+            {
+                // Forward the look input to the camera system
+                cameraFollow.UpdateCameraRotation(lookDelta.x * lookSensitivity,
+                                                 lookDelta.y * lookSensitivity);
+            }
+        }
+        else
+        {
+            lookDelta = Vector2.zero;
+        }
+    }
+    // Add this method to properly get camera-based movement direction
+    public Vector3 GetCameraRelativeMovementDirection(Vector2 movementInput)
+    {
+        if (cameraFollow == null || movementInput.magnitude < 0.1f)
+            return Vector3.zero;
+
+        // Get forward and right directions from the camera, removing y component
+        Vector3 forward = cameraFollow.transform.forward;
+        Vector3 right = cameraFollow.transform.right;
+
+        forward.y = 0;
+        right.y = 0;
+
+        if (forward.magnitude > 0.01f && right.magnitude > 0.01f)
+        {
+            forward.Normalize();
+            right.Normalize();
+        }
+        else
+        {
+            // Fallback if camera is looking directly up/down
+            forward = Vector3.forward;
+            right = Vector3.right;
+        }
+
+        // Calculate movement direction relative to camera
+        Vector3 direction = forward * movementInput.y + right * movementInput.x;
+
+        // Normalize for consistent speed in all directions
+        if (direction.magnitude > 0.1f)
+            direction.Normalize();
+
+        return direction;
     }
 
     public void OnMoveInput(InputAction.CallbackContext context)
@@ -117,17 +226,17 @@ public class PlayerController : MonoBehaviour
     {
         if (context.phase == InputActionPhase.Started)
         {
-            if (IsGrounded()) // 땅에 있을 때 점프
+            if (IsGrounded())
             {
                 rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
                 CharacterManager.Instance.Player.condition.UseStamina(10);
                 animator.SetBool("Jump", true);
             }
-            else if (canDoubleJump) // 공중에서 한 번 더 점프 가능
+            else if (canDoubleJump)
             {
-                rigidbody.velocity = new Vector3(rigidbody.velocity.x, 0f, rigidbody.velocity.z); // 현재 속도 초기화
+                rigidbody.velocity = new Vector3(rigidbody.velocity.x, 0f, rigidbody.velocity.z);
                 rigidbody.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
-                canDoubleJump = false; // 더블 점프 후 비활성화
+                canDoubleJump = false;
                 CharacterManager.Instance.Player.condition.UseStamina(10);
                 animator.SetBool("Jump", true);
             }
@@ -158,7 +267,7 @@ public class PlayerController : MonoBehaviour
     {
         if (isLadder)
         {
-            // 사다리 상태일 때는 y축으로만 이동
+            // Ladder movement remains vertical (unchanged)
             Vector3 dir = transform.up * curMovementInput.y;
             dir *= moveSpeed;
             Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
@@ -166,27 +275,41 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // 일반 이동
+            // Calculate movement speed
             float currentSpeed = isSprinting ? moveSpeed * 2f : moveSpeed;
-            Vector3 dir = transform.forward * curMovementInput.y + transform.right * curMovementInput.x;
-            dir *= currentSpeed;
 
-            // y값을 제외한 이동만 적용 (y는 중력에 의해 영향을 받도록 유지)
-            Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
+            // Get movement direction relative to camera
+            Vector3 dir = GetCameraRelativeMovementDirection(curMovementInput);
 
-            // MovePosition을 사용하여 물체를 이동
-            rigidbody.MovePosition(targetPosition);
+            // Only apply speed if there's actual direction input
+            if (dir.magnitude > 0.1f)
+            {
+                // Apply movement speed
+                dir *= currentSpeed;
+
+                // Smoothly rotate player to face movement direction
+                Quaternion targetRotation = Quaternion.LookRotation(dir);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+
+                // Calculate target position
+                Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
+
+                // Apply movement
+                rigidbody.MovePosition(targetPosition);
+            }
+            // If no movement input but still has velocity, apply a small amount of drag
+            else if (rigidbody.velocity.magnitude > 0.1f && IsGrounded())
+            {
+                Vector3 horizontalVelocity = new Vector3(rigidbody.velocity.x, 0, rigidbody.velocity.z);
+                rigidbody.velocity = new Vector3(
+                    horizontalVelocity.x * 0.9f,
+                    rigidbody.velocity.y,
+                    horizontalVelocity.z * 0.9f
+                );
+            }
         }
     }
 
-    void CameraLook()
-    {
-        camCurXRot += mouseDelta.y * lookSensitivity;
-        camCurXRot = Mathf.Clamp(camCurXRot, minXLook, maxXLook);
-        cameraContainer.localEulerAngles = new Vector3(-camCurXRot, 0, 0);
-
-        transform.eulerAngles += new Vector3(0, mouseDelta.x * lookSensitivity, 0);
-    }
 
     bool IsGrounded()
     {
@@ -213,7 +336,7 @@ public class PlayerController : MonoBehaviour
         else if (isGrounded)
         {
             animator.SetBool("FreeFall", false);
-            animator.SetBool("Jump", false); // 착지 시 Jump 애니메이션 불값을 false로 설정
+            animator.SetBool("Jump", false);
             StartCoroutine(PlayLandAnimation());
         }
     }
@@ -221,7 +344,7 @@ public class PlayerController : MonoBehaviour
     private IEnumerator PlayLandAnimation()
     {
         animator.SetTrigger("Grounded");
-        yield return new WaitForSeconds(0.1f); // 착지 모션 유지 시간 조정 가능
+        yield return new WaitForSeconds(0.1f);
     }
 
     private void UpdateMoveAnimation()
@@ -233,27 +356,24 @@ public class PlayerController : MonoBehaviour
     public void ApplyBoost(System.Action<float> applyAction, float baseValue, float amount, float duration, Sprite buffIcon)
     {
         if (boostCoroutine != null)
-            StopCoroutine(boostCoroutine); // 기존 코루틴 중지
+            StopCoroutine(boostCoroutine);
 
         boostCoroutine = StartCoroutine(BoostCoroutine(applyAction, baseValue, amount, duration, buffIcon));
     }
 
     private IEnumerator DoubleJumpCoroutine(float duration, Sprite buffIcon)
     {
-        Debug.Log("DoubleJumpCoroutine started");
-        canDoubleJump = true;  // 더블 점프 활성화
-        buffUIManager.ShowBuff(buffIcon, duration); // UI 표시
+        canDoubleJump = true;
+        buffUIManager.ShowBuff(buffIcon, duration);
         yield return new WaitForSeconds(duration);
-
-        canDoubleJump = false;  // 시간이 지나면 비활성화
-        Debug.Log("DoubleJumpCoroutine ended");
+        canDoubleJump = false;
     }
 
     private IEnumerator BoostCoroutine(System.Action<float> applyAction, float baseValue, float amount, float duration, Sprite buffIcon)
     {
-        applyAction(baseValue + amount); // 능력치 증가 적용
-        buffUIManager.ShowBuff(buffIcon, duration); // 버프 UI 표시
+        applyAction(baseValue + amount);
+        buffUIManager.ShowBuff(buffIcon, duration);
         yield return new WaitForSeconds(duration);
-        applyAction(baseValue); // 원래 값으로 복구
+        applyAction(baseValue);
     }
 }
