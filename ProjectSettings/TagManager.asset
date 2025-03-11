@@ -6,6 +6,7 @@ TagManager:
   tags:
   - CinemachineTarget
   - Groound
+  - Ladder
   layers:
   - Default
   - TransparentFX

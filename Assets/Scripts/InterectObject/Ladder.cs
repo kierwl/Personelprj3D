@@ -1,44 +1,72 @@
 using UnityEngine;
 
-public class Ladder : MonoBehaviour
+public class LadderObject : MonoBehaviour //, IInteractable
 {
-    public float climbSpeed = 5f; // 사다리 이동 속도
-    private bool isClimbing = false; // 현재 사다리 타는 중인지 체크
-    private Rigidbody playerRb; // 플레이어의 Rigidbody
+    // 플레이어가 사다리 영역 내에 있는지 여부
+    private bool inside = false;
+    public float speedUpDown = 3.2f; // 사다리 오르내리는 속도
+    public float climbForce = 5f; // 사다리 오르내리는 속도
 
-    private void OnTriggerEnter(Collider other)
+
+    // 플레이어 컨트롤러를 저장할 변수 (PlayerController가 있는 객체)
+    private PlayerController playerController;
+    private Rigidbody playerRigidbody;
+    private Transform playerTransform;
+
+    // 플레이어가 Trigger에 진입하면 실행
+    void OnTriggerEnter(Collider col)
     {
-        if (other.CompareTag("Player"))
+        // 플레이어 태그가 "Player"인 경우
+        if (col.CompareTag("Player"))
         {
-            isClimbing = true;
-            playerRb = other.GetComponent<Rigidbody>();
-
-            if (playerRb != null)
+            playerController = col.GetComponent<PlayerController>();
+            playerRigidbody = col.GetComponent<Rigidbody>();
+            if (playerController != null && playerRigidbody != null)
             {
-                playerRb.useGravity = false; // 사다리 영역에서 중력 해제
-                playerRb.velocity = Vector3.zero; // 기존 속도 초기화
+                // 플레이어의 기존 이동을 비활성화하여 사다리 오르내리기에 집중하도록 함
+                playerController.isLadder = true; // 사다리 상태 활성화
+                inside = true;
+                playerRigidbody.velocity = Vector3.zero;
+                playerRigidbody.useGravity = false;
+                playerTransform = col.transform;
             }
         }
     }
 
-    private void OnTriggerExit(Collider other)
+    // 플레이어가 Trigger 영역을 벗어나면 실행
+    void OnTriggerExit(Collider col)
     {
-        if (other.CompareTag("Player"))
+        if (col.CompareTag("Player"))
         {
-            isClimbing = false;
-            if (playerRb != null)
+            if (playerController != null)
             {
-                playerRb.useGravity = true; // 사다리를 벗어나면 중력 다시 적용
+                // 플레이어 이동 다시 활성화
+                playerController.isLadder = false; // 사다리 상태 비활성화
+                playerRigidbody.useGravity = true;
             }
+            inside = false;
+            playerTransform = null;
+            playerRigidbody.velocity = Vector3.zero;
         }
     }
 
-    private void Update()
+    void FixedUpdate()
     {
-        if (isClimbing && playerRb != null)
+        if (inside && playerRigidbody != null)
         {
-            float verticalInput = Input.GetAxis("Vertical"); // W / S 키 또는 ↑ / ↓ 키 입력
-            playerRb.velocity = new Vector3(0, verticalInput * climbSpeed, 0);
+            if (Input.GetKey("w"))
+            {
+                playerRigidbody.AddForce(Vector3.up * climbForce, ForceMode.Acceleration);
+            }
+            else if (Input.GetKey("s"))
+            {
+                playerRigidbody.AddForce(Vector3.down * climbForce, ForceMode.Acceleration);
+            }
+            else
+            {
+                // 키를 떼면 즉시 속도를 0으로 설정 (추가적인 힘을 가하지 않음)
+                playerRigidbody.velocity = new Vector3(playerRigidbody.velocity.x, 0, playerRigidbody.velocity.z);
+            }
         }
     }
 }

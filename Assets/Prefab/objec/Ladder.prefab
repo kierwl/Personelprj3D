@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 4585748067595598634}
   - component: {fileID: 5917856213011569122}
   - component: {fileID: 120114178382651713}
-  - component: {fileID: 2853966922950927699}
   m_Layer: 8
   m_Name: Ladder
   m_TagString: Groound
@@ -54,8 +53,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.8, y: 0.9, z: 0.8}
+  m_Center: {x: 0, y: 0.1, z: 0}
 --- !u!114 &120114178382651713
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68,20 +67,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5e9d13539d86ef4fa939b21c8081249, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  climbSpeed: 5
---- !u!114 &2853966922950927699
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8170299148366493502}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cc98cde0543034544a05c173db95a5a3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  data: {fileID: 11400000, guid: 3b6e549dc9440284bb3610ad214c7f0b, type: 2}
+  climbForce: 10
+  maxClimbSpeed: 5
+  isClimbing: 0
 --- !u!1 &8616249289199354057
 GameObject:
   m_ObjectHideFlags: 0

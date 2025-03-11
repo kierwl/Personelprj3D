@@ -31,6 +31,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody rigidbody;
     private Animator animator;
     public bool isSprinting = false;
+    public bool isLadder = false; // 사다리 상태를 나타내는 불값 추가
 
     private void Awake()
     {
@@ -155,15 +156,27 @@ public class PlayerController : MonoBehaviour
 
     private void Move()
     {
-        float currentSpeed = isSprinting ? moveSpeed * 2f : moveSpeed;
-        Vector3 dir = transform.forward * curMovementInput.y + transform.right * curMovementInput.x;
-        dir *= currentSpeed;
+        if (isLadder)
+        {
+            // 사다리 상태일 때는 y축으로만 이동
+            Vector3 dir = transform.up * curMovementInput.y;
+            dir *= moveSpeed;
+            Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
+            rigidbody.MovePosition(targetPosition);
+        }
+        else
+        {
+            // 일반 이동
+            float currentSpeed = isSprinting ? moveSpeed * 2f : moveSpeed;
+            Vector3 dir = transform.forward * curMovementInput.y + transform.right * curMovementInput.x;
+            dir *= currentSpeed;
 
-        // y값을 제외한 이동만 적용 (y는 중력에 의해 영향을 받도록 유지)
-        Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
+            // y값을 제외한 이동만 적용 (y는 중력에 의해 영향을 받도록 유지)
+            Vector3 targetPosition = transform.position + dir * Time.fixedDeltaTime;
 
-        // MovePosition을 사용하여 물체를 이동
-        rigidbody.MovePosition(targetPosition);
+            // MovePosition을 사용하여 물체를 이동
+            rigidbody.MovePosition(targetPosition);
+        }
     }
 
     void CameraLook()
